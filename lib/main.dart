@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -84,20 +83,62 @@ class _HomeScreenState extends State<HomeScreen> {
       _filteredTasks = List.from(_tasks);
     });
     _saveTasks();
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Task added')));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Task added')));
   }
 
-  void _deleteTask(int index) {
+  void _editTask(Task task) {
+    final titleCtrl = TextEditingController(text: task.title);
+    final descCtrl = TextEditingController(text: task.description);
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Edit Task'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleCtrl,
+              decoration: const InputDecoration(labelText: 'Title'),
+            ),
+            TextField(
+              controller: descCtrl,
+              decoration: const InputDecoration(labelText: 'Description'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                task.title = titleCtrl.text.trim();
+                task.description = descCtrl.text.trim();
+              });
+              _saveTasks();
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Task updated successfully')));
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _deleteTask(Task task) {
     setState(() {
-      _tasks.removeAt(index);
+      _tasks.remove(task);
       _filteredTasks = List.from(_tasks);
     });
     _saveTasks();
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Task deleted')));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Task deleted')));
   }
 
   void _toggleDone(Task task) {
@@ -152,9 +193,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _filteredTasks = List.from(_tasks);
       } else {
         _filteredTasks = _tasks
-            .where(
-              (task) => task.title.toLowerCase().contains(query.toLowerCase()),
-            )
+            .where((task) =>
+            task.title.toLowerCase().contains(query.toLowerCase()))
             .toList();
       }
     });
@@ -182,45 +222,47 @@ class _HomeScreenState extends State<HomeScreen> {
             child: _filteredTasks.isEmpty
                 ? const Center(child: Text('No tasks yet'))
                 : ListView.builder(
-                    itemCount: _filteredTasks.length,
-                    itemBuilder: (context, index) {
-                      final task = _filteredTasks[index];
-                      return Dismissible(
-                        key: UniqueKey(),
-                        onDismissed: (_) => _deleteTask(index),
-                        background: Container(
-                          color: Colors.redAccent,
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 20),
-                          child: const Icon(Icons.delete, color: Colors.white),
-                        ),
-                        child: Card(
-                          elevation: 3,
-                          margin: const EdgeInsets.symmetric(
-                            vertical: 6,
-                            horizontal: 10,
-                          ),
-                          child: ListTile(
-                            leading: Checkbox(
-                              value: task.isDone,
-                              onChanged: (_) => _toggleDone(task),
-                            ),
-                            title: Text(
-                              task.title,
-                              style: TextStyle(
-                                decoration: task.isDone
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                              ),
-                            ),
-                            subtitle: task.description?.isNotEmpty == true
-                                ? Text(task.description!)
-                                : null,
-                          ),
-                        ),
-                      );
-                    },
+              itemCount: _filteredTasks.length,
+              itemBuilder: (context, index) {
+                final task = _filteredTasks[index];
+                return Dismissible(
+                  key: UniqueKey(),
+                  onDismissed: (_) => _deleteTask(task),
+                  background: Container(
+                    color: Colors.redAccent,
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 20),
+                    child: const Icon(Icons.delete, color: Colors.white),
                   ),
+                  child: Card(
+                    elevation: 3,
+                    margin: const EdgeInsets.symmetric(
+                        vertical: 6, horizontal: 10),
+                    child: ListTile(
+                      leading: Checkbox(
+                        value: task.isDone,
+                        onChanged: (_) => _toggleDone(task),
+                      ),
+                      title: Text(
+                        task.title,
+                        style: TextStyle(
+                          decoration: task.isDone
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                      ),
+                      subtitle: task.description?.isNotEmpty == true
+                          ? Text(task.description!)
+                          : null,
+                      trailing: IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        onPressed: () => _editTask(task),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),
